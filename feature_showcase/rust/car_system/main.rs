@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-//! S-CORE Car System - Phase 6: Safety & Fault Handling
+//! S-CORE Car System - Phase 7: Workflow Orchestration
 //!
 //! This example demonstrates S-CORE patterns:
 //! - Component-based architecture
@@ -13,7 +13,8 @@
 //! - Valid state transitions
 //! - Message-based communication
 //! - Event loop for continuous processing
-//! - Safety monitoring and fault handling (NEW!)
+//! - Safety monitoring and fault handling
+//! - Workflow orchestration (NEW!)
 
 mod components;
 
@@ -61,8 +62,8 @@ impl CarSystem {
     /// This follows S-CORE's initialization pattern
     fn initialize(&mut self) -> Result<(), String> {
         println!("\n╔══════════════════════════════════════════════════════════════╗");
-        println!("║          🚗 S-CORE Car System - Phase 6                    ║");
-        println!("║  Multi-Component + Comm + State Machine + Loop + Safety   ║");
+        println!("║          🚗 S-CORE Car System - Phase 7                    ║");
+        println!("║  Multi-Component + Comm + State Machine + Loop + Safety + Workflows ║");
         println!("╚══════════════════════════════════════════════════════════════╝\n");
 
         println!("🔧 Initializing message bus...");
@@ -71,7 +72,10 @@ impl CarSystem {
         println!("🔧 Initializing safety monitor...");
         println!("   Limits: Speed={}km/h, Temp={}°C, RPM={}",
                  self.safety.max_speed, self.safety.max_temperature, self.safety.max_rpm);
-        println!("✅ Safety monitor ready\n");
+        println!("✅ Safety monitor ready");
+
+        println!("🔧 Initializing workflow orchestrator...");
+        println!("✅ Workflow orchestrator ready\n");
 
         println!("🔧 Initializing all components...\n");
 
@@ -305,27 +309,159 @@ impl CarSystem {
         println!("{}", "━".repeat(60));
         Ok(())
     }
+
+    /// Create a "Start Car" workflow
+    pub fn create_start_workflow() -> Workflow {
+        WorkflowBuilder::new(
+            "Start Car",
+            "Sequence to start the car and prepare for driving"
+        )
+        .step(
+            "Start Engine",
+            "Initialize the engine",
+            Box::new(|system| {
+                println!("🔑 Turning key to start engine...");
+                system.engine.start()?;
+                Ok(())
+            }),
+        )
+        .step(
+            "Initialize Dashboard",
+            "Set initial dashboard values",
+            Box::new(|system| {
+                println!("📊 Setting up dashboard...");
+                system.dashboard.set_fuel_level(85);
+                Ok(())
+            }),
+        )
+        .step(
+            "Ready Announcement",
+            "Announce car is ready",
+            Box::new(|_system| {
+                println!("\n✅ Car is ready to drive!\n");
+                Ok(())
+            }),
+        )
+        .build()
+    }
+
+    /// Create a "Shutdown Car" workflow
+    pub fn create_shutdown_workflow() -> Workflow {
+        WorkflowBuilder::new(
+            "Shutdown Car",
+            "Sequence to safely shutdown the car"
+        )
+        .step(
+            "Release Brakes",
+            "Ensure brakes are released",
+            Box::new(|system| {
+                println!("🛞 Releasing brakes...");
+                system.brakes.release();
+                Ok(())
+            }),
+        )
+        .step(
+            "Center Steering",
+            "Return steering to center",
+            Box::new(|system| {
+                println!("🔄 Centering steering...");
+                system.steering.center();
+                Ok(())
+            }),
+        )
+        .step(
+            "Stop Engine",
+            "Turn off the engine",
+            Box::new(|system| {
+                println!("🔑 Turning off engine...");
+                system.engine.stop()?;
+                Ok(())
+            }),
+        )
+        .build()
+    }
+
+    /// Create an "Emergency Stop" workflow
+    pub fn create_emergency_stop_workflow() -> Workflow {
+        WorkflowBuilder::new(
+            "Emergency Stop",
+            "Immediate emergency stop sequence"
+        )
+        .step(
+            "Max Brakes",
+            "Apply maximum brake pressure",
+            Box::new(|system| {
+                println!("🚨 APPLYING MAXIMUM BRAKES!");
+                system.brakes.apply(100)?;
+                Ok(())
+            }),
+        )
+        .step(
+            "Stop Engine",
+            "Immediately stop engine",
+            Box::new(|system| {
+                println!("🚨 STOPPING ENGINE!");
+                system.engine.stop()?;
+                Ok(())
+            }),
+        )
+        .step(
+            "Hazard Warning",
+            "Display emergency status",
+            Box::new(|_system| {
+                println!("\n🚨 EMERGENCY STOP COMPLETE! 🚨");
+                println!("   Vehicle safely stopped\n");
+                Ok(())
+            }),
+        )
+        .build()
+    }
 }
 
 /// Main entry point
 fn main() -> Result<(), String> {
     let mut car = CarSystem::new();
 
-    // Follow the S-CORE lifecycle pattern:
-    // 1. Initialize
+    // Phase 7: Use workflows instead of manual steps
+    println!("\n{}\n", "━".repeat(60));
+    println!("🎭 PHASE 7: Workflow Orchestration Demonstration");
+    println!("{}\n", "━".repeat(60));
+
+    // 1. Initialize components
     car.initialize()?;
 
-    // 2. Start
-    car.start()?;
+    // 2. Execute Start Car workflow
+    let start_workflow = CarSystem::create_start_workflow();
+    start_workflow.execute(&mut car)?;
 
-    // 3. Run event loop (Phase 5: Continuous processing)
-    car.run_event_loop(50)?;  // Run for 50 ticks
+    // 3. Run event loop
+    car.run_event_loop(30)?;
 
-    // 4. Shutdown
+    // 4. Execute Shutdown workflow
+    println!("\n{}", "━".repeat(60));
+    println!("🎭 Executing Shutdown Workflow...");
+    println!("{}\n", "━".repeat(60));
+
+    let shutdown_workflow = CarSystem::create_shutdown_workflow();
+    shutdown_workflow.execute(&mut car)?;
+
+    // 5. Demo: Emergency Stop workflow
+    println!("\n{}", "━".repeat(60));
+    println!("🚨 EMERGENCY STOP WORKFLOW (Demo)");
+    println!("{}\n", "━".repeat(60));
+
+    let emergency_workflow = CarSystem::create_emergency_stop_workflow();
+
+    // Re-initialize for demo
+    car.engine = EngineComponent::new();
+    car.brakes = BrakesComponent::new();
+
+    emergency_workflow.execute(&mut car)?;
+
     car.shutdown()?;
 
     println!("\n╔══════════════════════════════════════════════════════════════╗");
-    println!("║           ✅ Phase 6 Complete!                               ║");
+    println!("║           ✅ Phase 7 Complete!                               ║");
     println!("║                                                                ║");
     println!("║  You've learned:                                              ║");
     println!("║  ✓ Component-based architecture                               ║");
@@ -338,9 +474,11 @@ fn main() -> Result<(), String> {
     println!("║  ✓ Valid state transitions                                    ║");
     println!("║  ✓ Event loop for continuous processing                        ║");
     println!("║  ✓ Real-time tick-based processing                             ║");
-    println!("║  ✓ Safety monitoring (NEW!)                                   ║");
-    println!("║  ✓ Fault handling with severity levels (NEW!)                 ║");
-    println!("║  ✓ ISO 26262 style safety checks (NEW!)                        ║");
+    println!("║  ✓ Safety monitoring                                         ║");
+    println!("║  ✓ Fault handling with severity levels                         ║");
+    println!("║  ✓ ISO 26262 style safety checks                             ║");
+    println!("║  ✓ Workflow orchestration (NEW!)                              ║");
+    println!("║  ✓ Sequential action execution (NEW!)                         ║");
     println!("╚══════════════════════════════════════════════════════════════╝\n");
 
     Ok(())

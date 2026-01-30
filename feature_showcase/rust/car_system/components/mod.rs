@@ -10,6 +10,7 @@ mod message_bus;
 mod state_machine;
 mod event_loop;
 mod safety;
+mod workflow;
 
 pub use engine::EngineComponent;
 pub use brakes::BrakesComponent;
@@ -20,6 +21,7 @@ pub use message_bus::MessageBus;
 pub use state_machine::{EngineStateMachine, StateMachine};
 pub use event_loop::{EventLoop, EventLoopConfig};
 pub use safety::{SafetyMonitor, SafetyWarning, SafetySeverity};
+pub use workflow::{Workflow, WorkflowStep, WorkflowBuilder};
 
 /// Common component trait - all car components must implement this
 /// This mirrors S-CORE's component-based architecture where each component
