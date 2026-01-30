@@ -7,7 +7,7 @@ use std::fmt;
 pub struct WorkflowStep {
     name: String,
     description: String,
-    action: Box<dyn Fn(&mut crate::main::CarSystem) -> Result<(), String>>,
+    action: Box<dyn Fn(&mut crate::components::system::CarSystem) -> Result<(), String>>,
 }
 
 impl WorkflowStep {
@@ -15,7 +15,7 @@ impl WorkflowStep {
     pub fn new(
         name: &str,
         description: &str,
-        action: Box<dyn Fn(&mut crate::main::CarSystem) -> Result<(), String>>,
+        action: Box<dyn Fn(&mut crate::components::system::CarSystem) -> Result<(), String>>,
     ) -> Self {
         Self {
             name: name.to_string(),
@@ -25,7 +25,7 @@ impl WorkflowStep {
     }
 
     /// Execute this step
-    pub fn execute(&self, system: &mut crate::main::CarSystem) -> Result<(), String> {
+    pub fn execute(&self, system: &mut crate::components::system::CarSystem) -> Result<(), String> {
         println!("  ▶ Step: {}", self.name);
         (self.action)(system)?;
         println!("  ✅ {}: Complete", self.name);
@@ -57,7 +57,7 @@ impl Workflow {
     }
 
     /// Execute all steps in sequence
-    pub fn execute(&self, system: &mut crate::main::CarSystem) -> Result<(), String> {
+    pub fn execute(&self, system: &mut crate::components::system::CarSystem) -> Result<(), String> {
         println!("\n╔══════════════════════════════════════════════════════════════╗");
         println!("║           📋 Workflow: {:<40} ║", &self.name[..self.name.len().min(40)]);
         println!("║           {:<52}║", self.description);
@@ -96,7 +96,7 @@ impl WorkflowBuilder {
 
     /// Add a step to the workflow
     pub fn step(&mut self, name: &str, description: &str,
-               action: Box<dyn Fn(&mut crate::main::CarSystem) -> Result<(), String>>) -> &mut Self {
+               action: Box<dyn Fn(&mut crate::components::system::CarSystem) -> Result<(), String>>) -> &mut Self {
         self.workflow.add_step(WorkflowStep::new(name, description, action));
         self
     }
