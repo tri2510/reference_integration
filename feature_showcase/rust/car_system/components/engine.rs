@@ -4,17 +4,13 @@
 //! - Structured logging
 //! - Lifecycle management (initialize -> process -> shutdown)
 //! - Message publishing (Phase 3)
+//! - State machine with valid transitions (Phase 4)
 
 use crate::components::{CarComponent, ComponentState, CarMessage, ComponentId};
+use crate::components::state_machine::EngineStateMachine;
 
-/// Engine-specific states
-#[derive(Debug, Clone, PartialEq)]
-pub enum EngineState {
-    Off,
-    Starting,
-    Running,
-    Stopping,
-}
+/// Engine-specific states (using state machine)
+pub type EngineState = EngineStateMachine;
 
 /// Engine component - manages the car's engine
 pub struct EngineComponent {
@@ -39,41 +35,69 @@ impl EngineComponent {
         }
     }
 
-    /// Start the engine
+    /// Start the engine (with state machine validation)
     pub fn start(&mut self) -> Result<(), String> {
-        if self.running {
-            return Err("Engine already running".to_string());
+        // Phase 4: Validate state transition using state machine
+        if !self.engine_state.can_transition_to(&EngineState::Starting) {
+            return Err(format!(
+                "Cannot start engine: invalid transition from {} to STARTING",
+                self.engine_state
+            ));
         }
 
-        println!("  🔑 Engine: Starting ignition sequence...");
+        println!("  🔑 Engine: {} → STARTING", self.engine_state);
         self.state = ComponentState::Initializing;
         self.engine_state = EngineState::Starting;
 
         // Simulate startup delay
         self.rpm = 500;
+
+        // Complete transition to Running
+        if !self.engine_state.can_transition_to(&EngineState::Running) {
+            return Err(format!(
+                "Cannot complete startup: invalid transition from {} to RUNNING",
+                self.engine_state
+            ));
+        }
+
+        println!("  🔑 Engine: STARTING → RUNNING");
         self.state = ComponentState::Online;
         self.running = true;
         self.engine_state = EngineState::Running;
         self.rpm = 800; // Idle RPM
 
-        println!("  ✅ Engine: Started successfully");
+        println!("  ✅ Engine: Started successfully (state: {})", self.engine_state);
         Ok(())
     }
 
-    /// Stop the engine
+    /// Stop the engine (with state machine validation)
     pub fn stop(&mut self) -> Result<(), String> {
-        if !self.running {
-            return Err("Engine not running".to_string());
+        // Phase 4: Validate state transition using state machine
+        if !self.engine_state.can_transition_to(&EngineState::Stopping) {
+            return Err(format!(
+                "Cannot stop engine: invalid transition from {} to STOPPING",
+                self.engine_state
+            ));
         }
 
-        println!("  🔑 Engine: Shutting down...");
+        println!("  🔑 Engine: {} → STOPPING", self.engine_state);
         self.engine_state = EngineState::Stopping;
         self.running = false;
         self.rpm = 0;
+
+        // Complete transition to Off
+        if !self.engine_state.can_transition_to(&EngineState::Off) {
+            return Err(format!(
+                "Cannot complete shutdown: invalid transition from {} to OFF",
+                self.engine_state
+            ));
+        }
+
+        println!("  🔑 Engine: STOPPING → OFF");
         self.engine_state = EngineState::Off;
         self.state = ComponentState::Offline;
 
-        println!("  ✅ Engine: Stopped");
+        println!("  ✅ Engine: Stopped (state: {})", self.engine_state);
         Ok(())
     }
 
@@ -90,6 +114,11 @@ impl EngineComponent {
     /// Check if engine is running
     pub fn is_running(&self) -> bool {
         self.running
+    }
+
+    /// Get current engine state (Phase 4: State machine)
+    pub fn get_engine_state(&self) -> &EngineState {
+        &self.engine_state
     }
 
     /// Get messages to publish (Phase 3: Communication)

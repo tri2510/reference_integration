@@ -4,13 +4,14 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-//! S-CORE Car System - Phase 3: Component Communication
+//! S-CORE Car System - Phase 4: State Machines
 //!
 //! This example demonstrates S-CORE patterns:
 //! - Component-based architecture
 //! - Component lifecycle management
-//! - State management
-//! - Message-based communication (NEW!)
+//! - State management with state machines (NEW!)
+//! - Valid state transitions (NEW!)
+//! - Message-based communication
 //! - Orchestration of multiple components
 
 mod components;
@@ -57,8 +58,8 @@ impl CarSystem {
     /// This follows S-CORE's initialization pattern
     fn initialize(&mut self) -> Result<(), String> {
         println!("\n╔══════════════════════════════════════════════════════════════╗");
-        println!("║          🚗 S-CORE Car System - Phase 3                    ║");
-        println!("║    Multi-Component Architecture + Communication           ║");
+        println!("║          🚗 S-CORE Car System - Phase 4                    ║");
+        println!("║   Multi-Component + Communication + State Machines         ║");
         println!("╚══════════════════════════════════════════════════════════════╝\n");
 
         println!("🔧 Initializing message bus...");
@@ -88,6 +89,24 @@ impl CarSystem {
         self.dashboard.set_fuel_level(85);
 
         println!("\n✅ Car is ready to drive!\n");
+
+        // Phase 4: Demonstrate state machine validation
+        println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        println!("📚 Phase 4: State Machine Validation Demo");
+        println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
+        println!("\n✅ Valid transitions (what just happened):");
+        println!("   OFF → STARTING → RUNNING");
+
+        println!("\n🧪 Testing invalid transition (try to start already-running engine):");
+        match self.engine.start() {
+            Ok(_) => println!("   ❌ Oops - should have failed!"),
+            Err(e) => println!("   ✅ Correctly rejected: {}", e),
+        }
+
+        println!("\n📊 Current engine state: {}\n", self.engine.get_engine_state());
+        println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
         Ok(())
     }
 
@@ -199,15 +218,17 @@ fn main() -> Result<(), String> {
     car.shutdown()?;
 
     println!("\n╔══════════════════════════════════════════════════════════════╗");
-    println!("║           ✅ Phase 3 Complete!                               ║");
+    println!("║           ✅ Phase 4 Complete!                               ║");
     println!("║                                                                ║");
     println!("║  You've learned:                                              ║");
     println!("║  ✓ Component-based architecture                               ║");
     println!("║  ✓ Component lifecycle management                             ║");
     println!("║  ✓ State management                                           ║");
     println!("║  ✓ Multi-component orchestration                              ║");
-    println!("║  ✓ Message-based communication (NEW!)                         ║");
-    println!("║  ✓ Publish-subscribe pattern (NEW!)                           ║");
+    println!("║  ✓ Message-based communication                                ║");
+    println!("║  ✓ Publish-subscribe pattern                                  ║");
+    println!("║  ✓ State machine pattern (NEW!)                               ║");
+    println!("║  ✓ Valid state transitions (NEW!)                             ║");
     println!("╚══════════════════════════════════════════════════════════════╝\n");
 
     Ok(())

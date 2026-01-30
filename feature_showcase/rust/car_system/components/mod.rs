@@ -7,6 +7,7 @@ mod steering;
 mod dashboard;
 mod messages;
 mod message_bus;
+mod state_machine;
 
 pub use engine::EngineComponent;
 pub use brakes::BrakesComponent;
@@ -14,6 +15,7 @@ pub use steering::SteeringComponent;
 pub use dashboard::DashboardComponent;
 pub use messages::{CarMessage, ComponentId};
 pub use message_bus::MessageBus;
+pub use state_machine::{EngineStateMachine, StateMachine};
 
 /// Common component trait - all car components must implement this
 /// This mirrors S-CORE's component-based architecture where each component
