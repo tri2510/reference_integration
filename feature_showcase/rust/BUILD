@@ -25,3 +25,9 @@ rust_binary(
     srcs = glob(["hello_score/**/*.rs"]),
     visibility = ["//visibility:public"],
 )
+
+rust_binary(
+    name = "car_system_example",
+    srcs = glob(["car_system/**/*.rs"]),
+    visibility = ["//visibility:public"],
+)
