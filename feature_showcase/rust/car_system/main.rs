@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-//! S-CORE Car System - Phase 5: Event Loop
+//! S-CORE Car System - Phase 6: Safety & Fault Handling
 //!
 //! This example demonstrates S-CORE patterns:
 //! - Component-based architecture
@@ -12,8 +12,8 @@
 //! - State management with state machines
 //! - Valid state transitions
 //! - Message-based communication
-//! - Event loop for continuous processing (NEW!)
-//! - Real-time tick-based processing (NEW!)
+//! - Event loop for continuous processing
+//! - Safety monitoring and fault handling (NEW!)
 
 mod components;
 
@@ -29,7 +29,8 @@ struct CarSystem {
     brakes: BrakesComponent,
     steering: SteeringComponent,
     dashboard: DashboardComponent,
-    message_bus: MessageBus,  // Phase 3: Communication hub
+    message_bus: MessageBus,    // Phase 3: Communication hub
+    safety: SafetyMonitor,        // Phase 6: Safety monitoring
 }
 
 impl CarSystem {
@@ -52,6 +53,7 @@ impl CarSystem {
             steering: SteeringComponent::new(),
             dashboard: DashboardComponent::new(),
             message_bus,
+            safety: SafetyMonitor::new(), // Phase 6: Safety monitor
         }
     }
 
@@ -59,12 +61,17 @@ impl CarSystem {
     /// This follows S-CORE's initialization pattern
     fn initialize(&mut self) -> Result<(), String> {
         println!("\n╔══════════════════════════════════════════════════════════════╗");
-        println!("║          🚗 S-CORE Car System - Phase 5                    ║");
-        println!("║    Multi-Component + Comm + State Machine + Event Loop     ║");
+        println!("║          🚗 S-CORE Car System - Phase 6                    ║");
+        println!("║  Multi-Component + Comm + State Machine + Loop + Safety   ║");
         println!("╚══════════════════════════════════════════════════════════════╝\n");
 
         println!("🔧 Initializing message bus...");
-        println!("✅ Message bus ready\n");
+        println!("✅ Message bus ready");
+
+        println!("🔧 Initializing safety monitor...");
+        println!("   Limits: Speed={}km/h, Temp={}°C, RPM={}",
+                 self.safety.max_speed, self.safety.max_temperature, self.safety.max_rpm);
+        println!("✅ Safety monitor ready\n");
 
         println!("🔧 Initializing all components...\n");
 
@@ -145,7 +152,7 @@ impl CarSystem {
         Ok(())
     }
 
-    /// Run event loop for continuous processing (Phase 5)
+    /// Run event loop for continuous processing (Phase 5 & 6)
     pub fn run_event_loop(&mut self, num_ticks: u64) -> Result<(), String> {
         let config = EventLoopConfig {
             tick_rate_ms: 500,  // 2 Hz
@@ -156,12 +163,31 @@ impl CarSystem {
         let mut speed = 0u8;
         let mut accelerating = true;
 
+        // Phase 6: Show safety demo at start
+        if num_ticks > 10 {
+            println!("\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            println!("📚 Phase 6: Safety Monitor Demo");
+            println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
+            // Trigger safety warnings by exceeding limits
+            println!("\n🧪 Triggering safety warnings for demo...\n");
+
+            // Speed warning
+            let warnings = self.safety.check(130, 85.0, 5000, 50, 0, true);
+            for warning in &warnings {
+                println!("   {}", warning);
+            }
+
+            println!("\n✅ Safety monitor active - will warn during operation\n");
+            println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+        }
+
         // Event loop callback
         event_loop.run_for(num_ticks, |tick_num| {
-            // Simulate speed oscillation (0-100 km/h)
-            if tick_num % 20 == 0 {
+            // Simulate speed oscillation (0-130 km/h - exceed limit for demo)
+            if tick_num % 25 == 0 {
                 if accelerating {
-                    if speed >= 100 {
+                    if speed >= 130 {  // Exceed safety limit
                         accelerating = false;
                     }
                 } else {
@@ -171,7 +197,7 @@ impl CarSystem {
                 }
             }
 
-            if accelerating && speed < 100 {
+            if accelerating && speed < 130 {
                 speed += 5;
             } else if !accelerating && speed > 0 {
                 speed -= 5;
@@ -193,6 +219,31 @@ impl CarSystem {
 
             // Process one cycle
             self.process_cycle(speed)?;
+
+            // Phase 6: Run safety checks every 5 ticks
+            if tick_num % 5 == 0 {
+                let warnings = self.safety.check(
+                    speed,
+                    self.engine.get_temperature(),
+                    self.engine.get_rpm(),
+                    self.dashboard.get_fuel_level(),
+                    self.brakes.get_pressure(),
+                    self.engine.is_running()
+                );
+
+                if !warnings.is_empty() {
+                    println!("\n⚠️  SAFETY CHECK:");
+                    for warning in &warnings {
+                        println!("   {}", warning);
+                    }
+
+                    // Check if system is still safe
+                    if !self.safety.is_safe(&warnings) {
+                        println!("   🔴 CRITICAL SAFETY ISSUE - Consider stopping!");
+                    }
+                    println!();
+                }
+            }
 
             Ok(())
         });
@@ -274,7 +325,7 @@ fn main() -> Result<(), String> {
     car.shutdown()?;
 
     println!("\n╔══════════════════════════════════════════════════════════════╗");
-    println!("║           ✅ Phase 5 Complete!                               ║");
+    println!("║           ✅ Phase 6 Complete!                               ║");
     println!("║                                                                ║");
     println!("║  You've learned:                                              ║");
     println!("║  ✓ Component-based architecture                               ║");
@@ -285,8 +336,11 @@ fn main() -> Result<(), String> {
     println!("║  ✓ Publish-subscribe pattern                                  ║");
     println!("║  ✓ State machine pattern                                      ║");
     println!("║  ✓ Valid state transitions                                    ║");
-    println!("║  ✓ Event loop for continuous processing (NEW!)                ║");
-    println!("║  ✓ Real-time tick-based processing (NEW!)                     ║");
+    println!("║  ✓ Event loop for continuous processing                        ║");
+    println!("║  ✓ Real-time tick-based processing                             ║");
+    println!("║  ✓ Safety monitoring (NEW!)                                   ║");
+    println!("║  ✓ Fault handling with severity levels (NEW!)                 ║");
+    println!("║  ✓ ISO 26262 style safety checks (NEW!)                        ║");
     println!("╚══════════════════════════════════════════════════════════════╝\n");
 
     Ok(())
