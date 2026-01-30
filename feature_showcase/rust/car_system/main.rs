@@ -4,15 +4,16 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-//! S-CORE Car System - Phase 4: State Machines
+//! S-CORE Car System - Phase 5: Event Loop
 //!
 //! This example demonstrates S-CORE patterns:
 //! - Component-based architecture
 //! - Component lifecycle management
-//! - State management with state machines (NEW!)
-//! - Valid state transitions (NEW!)
+//! - State management with state machines
+//! - Valid state transitions
 //! - Message-based communication
-//! - Orchestration of multiple components
+//! - Event loop for continuous processing (NEW!)
+//! - Real-time tick-based processing (NEW!)
 
 mod components;
 
@@ -58,8 +59,8 @@ impl CarSystem {
     /// This follows S-CORE's initialization pattern
     fn initialize(&mut self) -> Result<(), String> {
         println!("\n╔══════════════════════════════════════════════════════════════╗");
-        println!("║          🚗 S-CORE Car System - Phase 4                    ║");
-        println!("║   Multi-Component + Communication + State Machines         ║");
+        println!("║          🚗 S-CORE Car System - Phase 5                    ║");
+        println!("║    Multi-Component + Comm + State Machine + Event Loop     ║");
         println!("╚══════════════════════════════════════════════════════════════╝\n");
 
         println!("🔧 Initializing message bus...");
@@ -144,6 +145,61 @@ impl CarSystem {
         Ok(())
     }
 
+    /// Run event loop for continuous processing (Phase 5)
+    pub fn run_event_loop(&mut self, num_ticks: u64) -> Result<(), String> {
+        let config = EventLoopConfig {
+            tick_rate_ms: 500,  // 2 Hz
+            verbose_timing: false,
+        };
+
+        let mut event_loop = EventLoop::new(config);
+        let mut speed = 0u8;
+        let mut accelerating = true;
+
+        // Event loop callback
+        event_loop.run_for(num_ticks, |tick_num| {
+            // Simulate speed oscillation (0-100 km/h)
+            if tick_num % 20 == 0 {
+                if accelerating {
+                    if speed >= 100 {
+                        accelerating = false;
+                    }
+                } else {
+                    if speed == 0 {
+                        accelerating = true;
+                    }
+                }
+            }
+
+            if accelerating && speed < 100 {
+                speed += 5;
+            } else if !accelerating && speed > 0 {
+                speed -= 5;
+            }
+
+            // Apply brakes occasionally
+            if tick_num % 30 == 0 && tick_num > 0 {
+                self.brakes.apply(50)?;
+            } else if tick_num % 30 == 10 {
+                self.brakes.release();
+            }
+
+            // Turn occasionally
+            if tick_num % 25 == 15 {
+                self.steering.turn(30)?;
+            } else if tick_num % 25 == 20 {
+                self.steering.center();
+            }
+
+            // Process one cycle
+            self.process_cycle(speed)?;
+
+            Ok(())
+        });
+
+        Ok(())
+    }
+
     /// Process one cycle - update all components and exchange messages
     fn process_cycle(&mut self, speed: u8) -> Result<(), String> {
         // Update all components first (so state changes happen)
@@ -211,14 +267,14 @@ fn main() -> Result<(), String> {
     // 2. Start
     car.start()?;
 
-    // 3. Run (process cycles)
-    car.run_scenario()?;
+    // 3. Run event loop (Phase 5: Continuous processing)
+    car.run_event_loop(50)?;  // Run for 50 ticks
 
     // 4. Shutdown
     car.shutdown()?;
 
     println!("\n╔══════════════════════════════════════════════════════════════╗");
-    println!("║           ✅ Phase 4 Complete!                               ║");
+    println!("║           ✅ Phase 5 Complete!                               ║");
     println!("║                                                                ║");
     println!("║  You've learned:                                              ║");
     println!("║  ✓ Component-based architecture                               ║");
@@ -227,8 +283,10 @@ fn main() -> Result<(), String> {
     println!("║  ✓ Multi-component orchestration                              ║");
     println!("║  ✓ Message-based communication                                ║");
     println!("║  ✓ Publish-subscribe pattern                                  ║");
-    println!("║  ✓ State machine pattern (NEW!)                               ║");
-    println!("║  ✓ Valid state transitions (NEW!)                             ║");
+    println!("║  ✓ State machine pattern                                      ║");
+    println!("║  ✓ Valid state transitions                                    ║");
+    println!("║  ✓ Event loop for continuous processing (NEW!)                ║");
+    println!("║  ✓ Real-time tick-based processing (NEW!)                     ║");
     println!("╚══════════════════════════════════════════════════════════════╝\n");
 
     Ok(())
