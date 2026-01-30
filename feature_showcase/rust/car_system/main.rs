@@ -4,12 +4,13 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-//! S-CORE Car System - Phase 2: Multi-Component Architecture
+//! S-CORE Car System - Phase 3: Component Communication
 //!
 //! This example demonstrates S-CORE patterns:
 //! - Component-based architecture
 //! - Component lifecycle management
 //! - State management
+//! - Message-based communication (NEW!)
 //! - Orchestration of multiple components
 
 mod components;
@@ -26,16 +27,29 @@ struct CarSystem {
     brakes: BrakesComponent,
     steering: SteeringComponent,
     dashboard: DashboardComponent,
+    message_bus: MessageBus,  // Phase 3: Communication hub
 }
 
 impl CarSystem {
     /// Create a new car system with all components
     fn new() -> Self {
+        let mut message_bus = MessageBus::new();
+
+        // Register all components with the message bus
+        message_bus.register_component(ComponentId::Engine);
+        message_bus.register_component(ComponentId::Brakes);
+        message_bus.register_component(ComponentId::Steering);
+        message_bus.register_component(ComponentId::Dashboard);
+
+        // Dashboard subscribes to all messages
+        message_bus.subscribe_all(ComponentId::Dashboard);
+
         Self {
             engine: EngineComponent::new(),
             brakes: BrakesComponent::new(),
             steering: SteeringComponent::new(),
             dashboard: DashboardComponent::new(),
+            message_bus,
         }
     }
 
@@ -43,9 +57,12 @@ impl CarSystem {
     /// This follows S-CORE's initialization pattern
     fn initialize(&mut self) -> Result<(), String> {
         println!("\n╔══════════════════════════════════════════════════════════════╗");
-        println!("║          🚗 S-CORE Car System - Phase 2                    ║");
-        println!("║       Multi-Component Architecture Example                  ║");
+        println!("║          🚗 S-CORE Car System - Phase 3                    ║");
+        println!("║    Multi-Component Architecture + Communication           ║");
         println!("╚══════════════════════════════════════════════════════════════╝\n");
+
+        println!("🔧 Initializing message bus...");
+        println!("✅ Message bus ready\n");
 
         println!("🔧 Initializing all components...\n");
 
@@ -108,12 +125,34 @@ impl CarSystem {
         Ok(())
     }
 
-    /// Process one cycle - update all components
+    /// Process one cycle - update all components and exchange messages
     fn process_cycle(&mut self, speed: u8) -> Result<(), String> {
-        // Update all components
+        // Update all components first (so state changes happen)
         self.engine.process()?;
         self.brakes.process()?;
         self.steering.process()?;
+
+        // Phase 3: Collect messages from all components AFTER they've processed
+        let mut engine_msgs = self.engine.get_messages();
+        let mut brakes_msgs = self.brakes.get_messages();
+        let mut steering_msgs = self.steering.get_messages();
+
+        // Publish messages to the bus
+        for msg in engine_msgs.drain(..) {
+            self.message_bus.publish(ComponentId::Engine, msg);
+        }
+        for msg in brakes_msgs.drain(..) {
+            self.message_bus.publish(ComponentId::Brakes, msg);
+        }
+        for msg in steering_msgs.drain(..) {
+            self.message_bus.publish(ComponentId::Steering, msg);
+        }
+
+        // Dashboard receives all messages
+        let dashboard_msgs = self.message_bus.receive_all(ComponentId::Dashboard);
+        if !dashboard_msgs.is_empty() {
+            self.dashboard.process_messages(dashboard_msgs);
+        }
 
         // Update dashboard with current component states
         self.dashboard.set_speed(speed);
@@ -160,13 +199,15 @@ fn main() -> Result<(), String> {
     car.shutdown()?;
 
     println!("\n╔══════════════════════════════════════════════════════════════╗");
-    println!("║           ✅ Phase 2 Complete!                               ║");
+    println!("║           ✅ Phase 3 Complete!                               ║");
     println!("║                                                                ║");
     println!("║  You've learned:                                              ║");
     println!("║  ✓ Component-based architecture                               ║");
     println!("║  ✓ Component lifecycle management                             ║");
     println!("║  ✓ State management                                           ║");
     println!("║  ✓ Multi-component orchestration                              ║");
+    println!("║  ✓ Message-based communication (NEW!)                         ║");
+    println!("║  ✓ Publish-subscribe pattern (NEW!)                           ║");
     println!("╚══════════════════════════════════════════════════════════════╝\n");
 
     Ok(())

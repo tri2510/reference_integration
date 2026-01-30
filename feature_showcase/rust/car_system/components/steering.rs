@@ -2,8 +2,9 @@
 //! Demonstrates S-CORE patterns:
 //! - Input validation (angle bounds checking)
 //! - Automatic state correction (return to center)
+//! - Message publishing (Phase 3)
 
-use crate::components::{CarComponent, ComponentState};
+use crate::components::{CarComponent, ComponentState, CarMessage};
 
 /// Steering component - manages the car's steering system
 pub struct SteeringComponent {
@@ -62,6 +63,18 @@ impl SteeringComponent {
         } else {
             "CENTER"
         }
+    }
+
+    /// Get messages to publish (Phase 3: Communication)
+    pub fn get_messages(&self) -> Vec<CarMessage> {
+        let mut messages = Vec::new();
+
+        // Report steering angle when not centered
+        if self.angle != 0 {
+            messages.push(CarMessage::SteeringTurn { angle: self.angle });
+        }
+
+        messages
     }
 }
 

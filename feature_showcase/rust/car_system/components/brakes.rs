@@ -3,8 +3,9 @@
 //! - State management
 //! - Input validation
 //! - Gradual state changes (pressure decay)
+//! - Message publishing (Phase 3)
 
-use crate::components::{CarComponent, ComponentState};
+use crate::components::{CarComponent, ComponentState, CarMessage};
 
 /// Brakes component - manages the car's braking system
 pub struct BrakesComponent {
@@ -51,6 +52,20 @@ impl BrakesComponent {
     /// Check if brakes are applied
     pub fn is_applied(&self) -> bool {
         self.applied
+    }
+
+    /// Get messages to publish (Phase 3: Communication)
+    pub fn get_messages(&self) -> Vec<CarMessage> {
+        let mut messages = Vec::new();
+
+        // Report brake pressure changes
+        if self.pressure > 0 {
+            messages.push(CarMessage::BrakePressureChange {
+                pressure: self.pressure,
+            });
+        }
+
+        messages
     }
 }
 

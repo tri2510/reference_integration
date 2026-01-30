@@ -3,8 +3,9 @@
 //! - Component state management
 //! - Structured logging
 //! - Lifecycle management (initialize -> process -> shutdown)
+//! - Message publishing (Phase 3)
 
-use crate::components::{CarComponent, ComponentState};
+use crate::components::{CarComponent, ComponentState, CarMessage, ComponentId};
 
 /// Engine-specific states
 #[derive(Debug, Clone, PartialEq)]
@@ -89,6 +90,26 @@ impl EngineComponent {
     /// Check if engine is running
     pub fn is_running(&self) -> bool {
         self.running
+    }
+
+    /// Get messages to publish (Phase 3: Communication)
+    /// Returns messages the engine wants to send to other components
+    pub fn get_messages(&self) -> Vec<CarMessage> {
+        let mut messages = Vec::new();
+
+        // Check for overheating (lowered to 21.0 so it appears during demo)
+        if self.running && self.temperature > 21.0 {
+            messages.push(CarMessage::EngineOverheating {
+                temperature: self.temperature,
+            });
+        }
+
+        // Report RPM changes
+        if self.running {
+            messages.push(CarMessage::EngineRpmChange { rpm: self.rpm });
+        }
+
+        messages
     }
 }
 

@@ -3,8 +3,9 @@
 //! - Aggregating state from multiple components
 //! - Display formatting and status reporting
 //! - Warning management
+//! - Message subscription (Phase 3)
 
-use crate::components::{CarComponent, ComponentState};
+use crate::components::{CarComponent, ComponentState, CarMessage};
 
 /// Dashboard component - displays all car system information
 pub struct DashboardComponent {
@@ -63,6 +64,29 @@ impl DashboardComponent {
     /// Update odometer
     pub fn update_odometer(&mut self, km: f32) {
         self.odometer += km;
+    }
+
+    /// Process incoming messages (Phase 3: Communication)
+    pub fn process_messages(&mut self, messages: Vec<CarMessage>) {
+        for msg in messages {
+            match msg {
+                CarMessage::EngineOverheating { temperature } => {
+                    self.add_warning(format!("Engine overheating: {:.1}°C", temperature));
+                }
+                CarMessage::FuelWarning { level } => {
+                    self.add_warning(format!("Low fuel: {}%", level));
+                }
+                CarMessage::BrakePressureChange { pressure } if pressure > 50 => {
+                    self.add_warning(format!("High brake pressure: {}%", pressure));
+                }
+                CarMessage::SpeedUpdate { km_h } if km_h > 120 => {
+                    self.add_warning("High speed - slow down!".to_string());
+                }
+                _ => {
+                    // Other messages are logged but don't trigger warnings
+                }
+            }
+        }
     }
 
     /// Display dashboard with engine status
